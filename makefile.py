@@ -20,7 +20,7 @@ def on_build(config: powermake.Config):
         config=config,
         outputfile="src/lexer.lex.c",
         dependencies={"src/lexer.lex"},
-        command="flex -o src/lexer.lex.c src/lexer.lex",
+        command="flex -d -o src/lexer.lex.c src/lexer.lex",
         shell=True
     )
 

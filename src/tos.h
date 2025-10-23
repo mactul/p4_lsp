@@ -4,6 +4,7 @@
 #include <stdbool.h>
 
 enum TOS_TYPES {
+    TOS_EXPIRED,
     TOS_IDENTIFIER,
     TOS_TYPE_IDENTIFIER,
 };
@@ -19,8 +20,7 @@ enum COMPARISON_OPERATORS {
 typedef struct {
     char* name;
     enum TOS_TYPES type;
-    int nb_dim;
-    int* size_ids;
+    int scope_depth;
 } Symbol;
 
 bool tos_init();
@@ -29,6 +29,9 @@ void tos_print();
 void tos_free();
 int tos_get_size();
 Symbol* tos_get_element(int n);
+
+void tos_increase_scope_depth(void);
+void tos_decrease_scope_depth(void);
 
 void increase_line_counter(int n);
 int get_current_line_count();

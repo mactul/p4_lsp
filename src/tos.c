@@ -4,6 +4,7 @@
 #include "lib/hashmap.h"
 #include "tos.h"
 
+static int current_scope_depth = 0;
 static int _line_counter = 1;
 static const char* _error_message = "";
 
@@ -35,6 +36,11 @@ int tos_register_identifier(enum TOS_TYPES type, const char* name)
         int v = hashmap_get_value(_tos, name);
         if(v >= 0)
         {
+            if(symbols_list.elements[v].type == TOS_EXPIRED)
+            {
+                symbols_list.elements[v].type = type;
+                symbols_list.elements[v].scope_depth = current_scope_depth;
+            }
             return v;
         }
     }
@@ -73,8 +79,9 @@ int tos_register_identifier(enum TOS_TYPES type, const char* name)
 
     symbols_list.elements[symbols_list.size].name = name_allocated;
     symbols_list.elements[symbols_list.size].type = type;
-    symbols_list.elements[symbols_list.size].nb_dim = -1;
-    symbols_list.elements[symbols_list.size].size_ids = NULL;
+    symbols_list.elements[symbols_list.size].scope_depth = current_scope_depth;
+
+    printf("%s registered in scope %d\n", name_allocated, current_scope_depth);
 
     return (int)symbols_list.size++;
 }
@@ -83,6 +90,8 @@ static const char* display_type(enum TOS_TYPES type)
 {
     switch(type)
     {
+        case TOS_EXPIRED:
+            return "EXPIRED";
         case TOS_IDENTIFIER:
             return "IDENTIFIER";
         case TOS_TYPE_IDENTIFIER:
@@ -100,7 +109,7 @@ void tos_print()
     {
         if(symbols_list.elements[i].name != NULL)
         {
-            printf("ID: %d\tType: %s\t\tName: %s\n", i, display_type(symbols_list.elements[i].type), symbols_list.elements[i].name);
+            printf("ID: %d\tType: %s\tScope Depth: %d\t  Name: %s\n", i, display_type(symbols_list.elements[i].type), symbols_list.elements[i].scope_depth, symbols_list.elements[i].name);
         }
     }
     printf("================================================================================\n");
@@ -112,7 +121,6 @@ void tos_free()
     for(unsigned int i = 0; i < symbols_list.size; i++)
     {
         free(symbols_list.elements[i].name);
-        free(symbols_list.elements[i].size_ids);
     }
     free(symbols_list.elements);
     symbols_list.elements = NULL;
@@ -130,6 +138,23 @@ Symbol* tos_get_element(int n)
     return symbols_list.elements + n;
 }
 
+void tos_increase_scope_depth()
+{
+    current_scope_depth++;
+}
+
+void tos_decrease_scope_depth()
+{
+    current_scope_depth--;
+    for(unsigned int i = 0; i < symbols_list.size; i++)
+    {
+        if(symbols_list.elements[i].name != NULL && symbols_list.elements[i].scope_depth > current_scope_depth)
+        {
+            printf("EXPIRED %s\n", symbols_list.elements[i].name);
+            symbols_list.elements[i].type = TOS_EXPIRED;
+        }
+    }
+}
 
 void increase_line_counter(int n)
 {

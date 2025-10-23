@@ -2,7 +2,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/wait.h>
-#include "lib/tos.h"
+#include "tos.h"
+#include "token.h"
 
 extern int yydebug;
 extern int yylex(void);
@@ -24,6 +25,8 @@ int main(int argc, char** argv)
         fputs("\033[31;1mError\033[0m: No input file\n\n", stderr);
         goto FREE;
     }
+
+    set_main_filepath(argv[1]);
 
     int fds[2];
 
@@ -74,6 +77,9 @@ int main(int argc, char** argv)
         fprintf(stderr, "Preprocessor error\n");
         goto FREE;
     }
+
+    tos_print();
+    print_tokens();
 
     return_code = 0;
 FREE:

@@ -7,7 +7,7 @@
     #include <stdlib.h>
     #include <stdbool.h>
     #include <stdarg.h>
-    #include "lib/tos.h"
+    #include "tos.h"
 
     void yyerror(const char*);
     int yylex(void);
@@ -236,7 +236,7 @@ dotPrefix
 parserDeclaration
     : parserTypeDeclaration optConstructorParameters
       /* no type parameters allowed in the parserTypeDeclaration */
-      '{' parserLocalElements parserStates '}'
+      '{' parserLocalElements parserStates '}' {tos_decrease_scope_depth();}
     ;
 
 parserLocalElements
@@ -252,7 +252,7 @@ parserLocalElement
     ;
 
 parserTypeDeclaration
-    : optAnnotations PARSER name optTypeParameters '(' parameterList ')' {$$ = $3;}
+    : optAnnotations PARSER name {tos_increase_scope_depth();} optTypeParameters '(' parameterList ')' {$$ = $3;}
     ;
 
 parserStates
@@ -350,11 +350,11 @@ valueSetDeclaration
 controlDeclaration
     : controlTypeDeclaration optConstructorParameters
       /* no type parameters allowed in controlTypeDeclaration */
-      '{' controlLocalDeclarations APPLY controlBody '}'
+      '{' controlLocalDeclarations APPLY controlBody '}' {tos_decrease_scope_depth();}
     ;
 
 controlTypeDeclaration
-    : optAnnotations CONTROL name optTypeParameters
+    : optAnnotations CONTROL name {tos_increase_scope_depth();} optTypeParameters
       '(' parameterList ')' {$$ = $3;}
     ;
 
@@ -379,7 +379,7 @@ controlBody
 
 externDeclaration
     : optAnnotations EXTERN nonTypeName {Symbol* s = tos_get_element($3); s->type = TOS_TYPE_IDENTIFIER;} optTypeParameters '{' methodPrototypes '}'
-    | optAnnotations EXTERN functionPrototype ';'
+    | optAnnotations EXTERN functionPrototype ';' {tos_decrease_scope_depth();}
     ;
 
 methodPrototypes
@@ -388,11 +388,11 @@ methodPrototypes
     ;
 
 functionPrototype
-    : typeOrVoid name optTypeParameters '(' parameterList ')'
+    : typeOrVoid name {tos_increase_scope_depth();} optTypeParameters '(' parameterList ')'
     ;
 
 methodPrototype
-    : optAnnotations functionPrototype ';'
+    : optAnnotations functionPrototype ';' {tos_decrease_scope_depth();}
     | optAnnotations TYPE_IDENTIFIER '(' parameterList ')' ';'
     ;
 
@@ -495,8 +495,8 @@ typeArgumentList
 typeDeclaration
     : derivedTypeDeclaration {$$ = $1;}
     | typedefDeclaration {$$ = $1;}
-    | parserTypeDeclaration ';' {$$ = $1;}
-    | controlTypeDeclaration ';' {$$ = $1;}
+    | parserTypeDeclaration ';' {tos_decrease_scope_depth(); $$ = $1;}
+    | controlTypeDeclaration ';' {tos_decrease_scope_depth(); $$ = $1;}
     | packageTypeDeclaration ';' {$$ = $1;}
     ;
 
@@ -714,7 +714,7 @@ initializer
 /************************* Expressions ****************************/
 
 functionDeclaration
-    : functionPrototype blockStatement
+    : functionPrototype blockStatement {tos_decrease_scope_depth();}
     ;
 
 argumentList
