@@ -20,22 +20,27 @@ static struct {
     unsigned int allocated;
 } token_list = {.elements = NULL, .size = 0, .allocated = 0};
 
-static const char* _main_filepath = NULL;
+static char* _main_filepath = NULL;
 static bool _is_main_filepath = true;
-
-void set_main_filepath(const char* filepath)
-{
-    _main_filepath = filepath;
-}
 
 void enter_file(const char* filepath)
 {
+    if(_main_filepath == NULL)
+    {
+        _main_filepath = malloc(strlen(filepath)+1);
+        strcpy(_main_filepath, filepath);
+    }
     _is_main_filepath = (strcmp(filepath, _main_filepath) == 0);
 }
 
-bool add_token(enum TOKEN_TYPE type, size_t line, size_t col_start, size_t len, uint64_t modifiers)
+bool is_main_filepath()
 {
-    if(!_is_main_filepath)
+    return _is_main_filepath;
+}
+
+bool add_token(enum TOKEN_TYPE type, size_t line, size_t col_start, size_t len, uint64_t modifiers, bool check_filepath)
+{
+    if(check_filepath && !_is_main_filepath)
     {
         return true;
     }
@@ -68,13 +73,32 @@ bool add_token(enum TOKEN_TYPE type, size_t line, size_t col_start, size_t len, 
     return true;
 }
 
+int cmp_lines(const void* e1, const void* e2)
+{
+    return (int)(((struct token*)e1)->line - ((struct token*)e2)->line);
+}
 
 void print_tokens()
 {
+    size_t last_line = 0;
+    size_t last_col = 0;
+
+    qsort(token_list.elements, token_list.size, sizeof(struct token), cmp_lines);
     for(unsigned int i = 0; i < token_list.size; i++)
     {
-        printf("TYPE: %d\tLINE: %d\tCOL: %d\tLEN: %d\tMODIFIERS: %d\n", token_list.elements[i].type, token_list.elements[i].line, token_list.elements[i].col_start, token_list.elements[i].len, token_list.elements[i].modifiers);
+        size_t delta_line = token_list.elements[i].line - last_line - 1;
+        size_t delta_col = token_list.elements[i].col_start;
+        if(delta_line == 0)
+        {
+            delta_col -= last_col;
+        }
+
+        printf("%lu %lu %lu %d %lu ", delta_line, delta_col, token_list.elements[i].len, token_list.elements[i].type, token_list.elements[i].modifiers);
+
+        last_line = token_list.elements[i].line - 1;
+        last_col = token_list.elements[i].col_start;
     }
+    fflush(stdout);
 }
 
 

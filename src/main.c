@@ -26,7 +26,6 @@ int main(int argc, char** argv)
         goto FREE;
     }
 
-    set_main_filepath(argv[1]);
 
     int fds[2];
 
@@ -45,8 +44,8 @@ int main(int argc, char** argv)
             //child
             close(fds[0]);
             dup2(fds[1], STDOUT_FILENO);
-            execlp("gcc", "gcc", "-E", "-x", "c", argv[1], "-I", "p4include", NULL);
-            break;
+            execlp("gcc", "gcc", "-C", "-E", "-x", "c", argv[1], "-I", "p4include", NULL);
+            return 1;
         default:
             close(fds[1]);
     }
@@ -78,7 +77,7 @@ int main(int argc, char** argv)
         goto FREE;
     }
 
-    tos_print();
+    // tos_print();
     print_tokens();
 
     return_code = 0;

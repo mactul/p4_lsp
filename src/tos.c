@@ -28,7 +28,7 @@ bool tos_init()
     return true;
 }
 
-int tos_register_identifier(enum TOS_TYPES type, const char* name)
+int tos_register_identifier(enum TOS_TYPES type, const char* name, ssize_t line, ssize_t col)
 {
 
     if(name != NULL)
@@ -41,6 +41,8 @@ int tos_register_identifier(enum TOS_TYPES type, const char* name)
                 symbols_list.elements[v].type = type;
                 symbols_list.elements[v].scope_depth = current_scope_depth;
             }
+            symbols_list.elements[v].line = line;
+            symbols_list.elements[v].col = col;
             return v;
         }
     }
@@ -80,8 +82,10 @@ int tos_register_identifier(enum TOS_TYPES type, const char* name)
     symbols_list.elements[symbols_list.size].name = name_allocated;
     symbols_list.elements[symbols_list.size].type = type;
     symbols_list.elements[symbols_list.size].scope_depth = current_scope_depth;
+    symbols_list.elements[symbols_list.size].line = line;
+    symbols_list.elements[symbols_list.size].col = col;
 
-    printf("%s registered in scope %d\n", name_allocated, current_scope_depth);
+    // printf("%s registered in scope %d\n", name_allocated, current_scope_depth);
 
     return (int)symbols_list.size++;
 }
@@ -150,7 +154,7 @@ void tos_decrease_scope_depth()
     {
         if(symbols_list.elements[i].name != NULL && symbols_list.elements[i].scope_depth > current_scope_depth)
         {
-            printf("EXPIRED %s\n", symbols_list.elements[i].name);
+            // printf("EXPIRED %s\n", symbols_list.elements[i].name);
             symbols_list.elements[i].type = TOS_EXPIRED;
         }
     }

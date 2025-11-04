@@ -3,3 +3,5 @@ build
 .cache
 *.lex.c
 *.tab.*
+.dap_args.lua
+log

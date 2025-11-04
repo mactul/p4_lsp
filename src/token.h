@@ -8,13 +8,14 @@
 enum TOKEN_TYPE {
     TOKEN_KEYWORD,
     TOKEN_TYPE,
+    TOKEN_COMMENT,
 };
 
-void set_main_filepath(const char* filepath);
+bool is_main_filepath();
 
 void enter_file(const char* filepath);
 
-bool add_token(enum TOKEN_TYPE type, size_t line, size_t col_start, size_t len, uint64_t modifiers);
+bool add_token(enum TOKEN_TYPE type, size_t line, size_t col_start, size_t len, uint64_t modifiers, bool check_filepath);
 
 void print_tokens();
 

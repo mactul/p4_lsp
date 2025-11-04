@@ -5,9 +5,11 @@
 %{
     #include <stdio.h>
     #include <stdlib.h>
+    #include <string.h>
     #include <stdbool.h>
     #include <stdarg.h>
     #include "tos.h"
+    #include "token.h"
 
     void yyerror(const char*);
     int yylex(void);
@@ -127,7 +129,7 @@ declaration
     | externDeclaration
     | actionDeclaration
     | parserDeclaration
-    | typeDeclaration {Symbol* s = tos_get_element($1); s->type = TOS_TYPE_IDENTIFIER;}
+    | typeDeclaration {Symbol* s = tos_get_element($1); s->type = TOS_TYPE_IDENTIFIER; if(s->line != -1) {add_token(TOKEN_TYPE, (size_t)s->line, (size_t)s->col, strlen(s->name), 0, false);}}
     | controlDeclaration
     | instantiation
     | errorDeclaration

@@ -14,7 +14,7 @@
 
     static size_t line = 0;
     static size_t col = 0;
-    void update_line_col(const char* str, size_t* line, size_t* col);
+    void handle_long_comment(const char* str, size_t* line, size_t* col);
     void handle_preprocessor_info(char* str, size_t* line, size_t* col);
 
 %}
@@ -34,7 +34,7 @@ abstract {col += 8; return ABSTRACT;}
 action {col += 6; return ACTION;}
 actions {col += 7; return ACTIONS;}
 && {col += 2; return AND;}
-apply {add_token(TOKEN_KEYWORD, line, col, 5, 0); col += 5; return APPLY;}
+apply {add_token(TOKEN_KEYWORD, line, col, 5, 0, true); col += 5; return APPLY;}
 bit {col += 3; return BIT;}
 bool {col += 4; return BOOL;}
 , {col += 1; return COMMA;}
@@ -89,38 +89,49 @@ type {col += 4; return TYPE;}
 typedef {col += 7; return TYPEDEF;}
 valueset {col += 8; return VALUESET;}
 varbit {col += 6; return VARBIT;}
-void {add_token(TOKEN_TYPE, line, col, 4, 0); col += 4; return VOID;}
+void {add_token(TOKEN_TYPE, line, col, 4, 0, true); col += 4; return VOID;}
 
 (0x|0b)?[0-9]+ {return INTEGER; col += strlen(yytext);}
 {STRING_LITERAL} {return STRING_LITERAL; col += strlen(yytext);}
 {IDENTIFIER} {
-    yylval.integer = tos_register_identifier(TOS_IDENTIFIER, yytext);
+    if(is_main_filepath())
+    {
+        yylval.integer = tos_register_identifier(TOS_IDENTIFIER, yytext, (ssize_t)line, (ssize_t)col);
+    }
+    else
+    {
+        yylval.integer = tos_register_identifier(TOS_IDENTIFIER, yytext, -1, -1);
+    }
     Symbol* s = tos_get_element(yylval.integer);
     col += strlen(yytext);
     return s->type == TOS_TYPE_IDENTIFIER ? TYPE_IDENTIFIER : IDENTIFIER;
 }
 \n {line++; col = 0;};
 (\ |\t|\r|\f|\b) {col += 1;};
-{SYM_LONG_COMMENT} {update_line_col(yytext, &line, &col);};
-{SYM_SHORT_COMMENT} {col += strlen(yytext);};
+{SYM_LONG_COMMENT} {handle_long_comment(yytext, &line, &col);};
+{SYM_SHORT_COMMENT} {add_token(TOKEN_COMMENT, line, col, strlen(yytext), 0, true); col += strlen(yytext);};
 {SYM_PREPROCESSOR_INFO} {handle_preprocessor_info(yytext, &line, &col);};
 
 . {PRINT_DEBUG(yytext); col += 1; return yytext[0];};
 
 %%
 
-void update_line_col(const char* str, size_t* line, size_t* col)
+void handle_long_comment(const char* str, size_t* line, size_t* col)
 {
+    size_t starting_col = *col;
     while(*str != '\0')
     {
-        col++;
+        (*col)++;
         if(*str == '\n')
         {
-            *line++;
+            add_token(TOKEN_COMMENT, *line, starting_col, *col - starting_col, 0, true);
+            (*line)++;
             *col = 0;
+            starting_col = 0;
         }
         str++;
     }
+    add_token(TOKEN_COMMENT, *line, starting_col, *col - starting_col, 0, true);
 }
 
 
