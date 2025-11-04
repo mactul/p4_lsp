@@ -20,16 +20,16 @@ int main(int argc, char** argv)
     yyin = NULL;
 
 
-    if(argc < 2)
+    int out_fds[2];
+    int in_fds[2];
+
+    if(pipe(out_fds) < 0)
     {
-        fputs("\033[31;1mError\033[0m: No input file\n\n", stderr);
+        perror("pipe: ");
         goto FREE;
     }
 
-
-    int fds[2];
-
-    if(pipe(fds) < 0)
+    if(pipe(in_fds) < 0)
     {
         perror("pipe: ");
         goto FREE;
@@ -42,15 +42,28 @@ int main(int argc, char** argv)
             goto FREE;
         case 0:
             //child
-            close(fds[0]);
-            dup2(fds[1], STDOUT_FILENO);
-            execlp("gcc", "gcc", "-C", "-E", "-x", "c", argv[1], "-I", "p4include", NULL);
+            close(in_fds[1]);
+            close(out_fds[0]);
+            dup2(in_fds[0], STDIN_FILENO);
+            dup2(out_fds[1], STDOUT_FILENO);
+            execlp("gcc", "gcc", "-C", "-E", "-x", "c", "-", "-I", "p4include", NULL);
             return 1;
         default:
-            close(fds[1]);
+            close(in_fds[0]);
+            close(out_fds[1]);
     }
 
-    yyin = fdopen(fds[0], "r");
+    char buf[4096];
+    ssize_t n;
+    while ((n = read(STDIN_FILENO, buf, sizeof(buf))) > 0) {
+        if (write(in_fds[1], buf, (size_t)n) != n) {
+            perror("write to gcc");
+            break;
+        }
+    }
+    close(in_fds[1]);
+
+    yyin = fdopen(out_fds[0], "r");
 
     if(!tos_init())
     {

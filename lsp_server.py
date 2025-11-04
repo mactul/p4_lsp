@@ -73,11 +73,13 @@ while True:
             continue
 
         try:
-            tokens = [int(x) for x in subprocess.check_output(["/home/mactul/Documents/c-cpp/p4_lsp/build/Linux/x64/release/bin/p4_lsp", uri[len("file://"):]], stderr=subprocess.DEVNULL, encoding="ascii").strip().split(' ')]
+            pipe = subprocess.Popen(["/home/mactul/Documents/c-cpp/p4_lsp/build/Linux/x64/release/bin/p4_lsp", uri[len("file://"):]], encoding='ascii', stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=sys.stderr, text=True)
+            answer = pipe.communicate(input=text)[0].strip()
+            if len(answer) > 0:
+                tokens = [int(x) for x in answer.split(' ')]
         except Exception as e:
             with open("/home/mactul/Documents/c-cpp/p4_lsp/log", "a") as file:
                 file.write(str(e))
-            exit(1)
         send({"jsonrpc": "2.0", "id": id_, "result": {"data": tokens}})
 
     # just acknowledge shutdown/exit
