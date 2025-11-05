@@ -1,0 +1,12 @@
+{
+  "name": "tree-sitter-p4",
+  "version": "0.1.0",
+  "main": "bindings/node",
+  "dependencies": {
+    "nan": "*"
+  },
+  "tree-sitter": [
+    "src"
+  ]
+}
+

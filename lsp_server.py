@@ -46,7 +46,7 @@ while True:
                     "textDocumentSync": 1,
                     "semanticTokensProvider": {
                         "full": True,
-                        "legend": {"tokenTypes": ["keyword", "type", "comment"], "tokenModifiers": []}
+                        "legend": {"tokenTypes": ["keyword", "type", "comment", "function"], "tokenModifiers": ["control"]}
                     }
                 }
             }

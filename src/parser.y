@@ -14,6 +14,8 @@
     void yyerror(const char*);
     int yylex(void);
 
+    void add_id_token(const Symbol* s, enum TOKEN_TYPE type);
+
 %}
 
 %union {
@@ -24,7 +26,7 @@
 %token ACTION
 %token ACTIONS
 %token AND
-%token APPLY
+%token <integer> APPLY
 %token BIT
 %token BOOL
 %token COMMA
@@ -98,6 +100,9 @@
 %type <integer> headerUnionDeclaration
 %type <integer> structTypeDeclaration
 %type <integer> enumDeclaration
+%type <integer> member
+%type <integer> lvalue
+%type <integer> prefixedNonTypeName
 
 %left COMMA
 %nonassoc '?'
@@ -129,7 +134,7 @@ declaration
     | externDeclaration
     | actionDeclaration
     | parserDeclaration
-    | typeDeclaration {Symbol* s = tos_get_element($1); s->type = TOS_TYPE_IDENTIFIER; if(s->line != -1) {add_token(TOKEN_TYPE, (size_t)s->line, (size_t)s->col, strlen(s->name), 0, false);}}
+    | typeDeclaration {Symbol* s = tos_get_element($1); s->type = TOS_TYPE_IDENTIFIER; add_id_token(s, TOKEN_TYPE);}
     | controlDeclaration
     | instantiation
     | errorDeclaration
@@ -139,7 +144,7 @@ declaration
 
 nonTypeName
     : IDENTIFIER {$$ = $1;}
-    | APPLY {$$ = -1;}
+    | APPLY {$$ = $1;}
     | KEY {$$ = -1;}
     | ACTIONS {$$ = -1;}
     | STATE {$$ = -1;}
@@ -380,7 +385,7 @@ controlBody
 /*************************** EXTERN *************************/
 
 externDeclaration
-    : optAnnotations EXTERN nonTypeName {Symbol* s = tos_get_element($3); s->type = TOS_TYPE_IDENTIFIER;} optTypeParameters '{' methodPrototypes '}'
+    : optAnnotations EXTERN nonTypeName {Symbol* s = tos_get_element($3); s->type = TOS_TYPE_IDENTIFIER; add_id_token(s, TOKEN_TYPE);} optTypeParameters '{' methodPrototypes '}'
     | optAnnotations EXTERN functionPrototype ';' {tos_decrease_scope_depth();}
     ;
 
@@ -414,8 +419,8 @@ namedType
     ;
 
 prefixedType
-    : TYPE_IDENTIFIER
-    | dotPrefix TYPE_IDENTIFIER
+    : TYPE_IDENTIFIER {Symbol* s = tos_get_element($1); add_id_token(s, TOKEN_TYPE);}
+    | dotPrefix TYPE_IDENTIFIER {Symbol* s = tos_get_element($2); add_id_token(s, TOKEN_TYPE);}
     ;
 
 typeName
@@ -466,8 +471,8 @@ typeParameters
     ;
 
 typeParameterList
-    : name {Symbol* s = tos_get_element($1); s->type = TOS_TYPE_IDENTIFIER;}
-    | typeParameterList COMMA name {Symbol* s = tos_get_element($3); s->type = TOS_TYPE_IDENTIFIER;}
+    : name {Symbol* s = tos_get_element($1); s->type = TOS_TYPE_IDENTIFIER; add_id_token(s, TOKEN_TYPE);}
+    | typeParameterList COMMA name {Symbol* s = tos_get_element($3); s->type = TOS_TYPE_IDENTIFIER; add_id_token(s, TOKEN_TYPE);}
     ;
 
 realTypeArg
@@ -567,8 +572,8 @@ typedefDeclaration
 /*************************** STATEMENTS *************************/
 
 assignmentOrMethodCallStatement
-    : lvalue '(' argumentList ')' ';'
-    | lvalue '<' typeArgumentList '>' '(' argumentList ')' ';'
+    : lvalue '(' argumentList ')' ';' {if($1 != -1) {Symbol* s = tos_get_element($1); add_id_token(s, TOKEN_CALL);}}
+    | lvalue '<' typeArgumentList '>' '(' argumentList ')' ';' {if($1 != -1) {Symbol* s = tos_get_element($1); add_id_token(s, TOKEN_CALL);}}
     | lvalue '='  expression ';'
     ;
 
@@ -851,20 +856,20 @@ annotationToken
     ;
 
 member
-    : name
+    : name {$$ = $1;}
     ;
 
 prefixedNonTypeName
-    : nonTypeName
-    | dotPrefix nonTypeName
+    : nonTypeName {$$ = $1;}
+    | dotPrefix nonTypeName {$$ = $2;}
     ;
 
 lvalue
-    : prefixedNonTypeName
-    | THIS
-    | lvalue '.' member
-    | lvalue '[' expression ']'
-    | lvalue '[' expression ':' expression ']'
+    : prefixedNonTypeName {$$ = $1;}
+    | THIS {$$ = -1;}
+    | lvalue '.' member {$$ = $3;}
+    | lvalue '[' expression ']' {$$ = -1;}
+    | lvalue '[' expression ':' expression ']' {$$ = -1;}
     ;
 
 
@@ -970,4 +975,12 @@ nonBraceExpression
 void yyerror(const char* error)
 {
     fprintf(stderr, "%s", error);
+}
+
+void add_id_token(const Symbol* s, enum TOKEN_TYPE type)
+{
+    if(s->line > 0)
+    {
+        add_token(type, (size_t)s->line, (size_t)s->col, strlen(s->name), 0, false);
+    }
 }

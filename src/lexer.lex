@@ -34,7 +34,7 @@ abstract {col += 8; return ABSTRACT;}
 action {col += 6; return ACTION;}
 actions {col += 7; return ACTIONS;}
 && {col += 2; return AND;}
-apply {add_token(TOKEN_KEYWORD, line, col, 5, 0, true); col += 5; return APPLY;}
+apply {yylval.integer = tos_register_identifier(TOS_IDENTIFIER, "apply", (ssize_t)line, (ssize_t)col); col += 5; return APPLY;}
 bit {col += 3; return BIT;}
 bool {col += 4; return BOOL;}
 , {col += 1; return COMMA;}
@@ -89,7 +89,7 @@ type {col += 4; return TYPE;}
 typedef {col += 7; return TYPEDEF;}
 valueset {col += 8; return VALUESET;}
 varbit {col += 6; return VARBIT;}
-void {add_token(TOKEN_TYPE, line, col, 4, 0, true); col += 4; return VOID;}
+void {col += 4; return VOID;}
 
 (0x|0b)?[0-9]+ {return INTEGER; col += strlen(yytext);}
 {STRING_LITERAL} {return STRING_LITERAL; col += strlen(yytext);}

@@ -9,6 +9,7 @@ enum TOKEN_TYPE {
     TOKEN_KEYWORD,
     TOKEN_TYPE,
     TOKEN_COMMENT,
+    TOKEN_CALL,
 };
 
 bool is_main_filepath();
