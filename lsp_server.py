@@ -46,8 +46,9 @@ while True:
                     "textDocumentSync": 1,
                     "semanticTokensProvider": {
                         "full": True,
-                        "legend": {"tokenTypes": ["keyword", "type", "comment", "function"], "tokenModifiers": ["control"]}
-                    }
+                        "legend": {"tokenTypes": ["keyword", "type", "comment", "function"], "tokenModifiers": ["definition"]}
+                    },
+                    "hoverProvider": True
                 }
             }
         })
@@ -81,6 +82,16 @@ while True:
             with open("/home/mactul/Documents/c-cpp/p4_lsp/log", "a") as file:
                 file.write(str(e))
         send({"jsonrpc": "2.0", "id": id_, "result": {"data": tokens}})
+
+    elif method == "textDocument/hover":
+        uri = msg["params"]["textDocument"]["uri"]
+        text = docs.get(uri, "")
+        tokens = []
+
+        if not uri.endswith("p4"):
+            continue
+
+        send({"jsonrpc": "2.0", "id": id_, "result": {"contents": str(msg["params"])}})
 
     # just acknowledge shutdown/exit
     elif method == "shutdown":

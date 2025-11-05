@@ -65,15 +65,14 @@ control MyIngress(inout headers hdr,
     //TODO 4: define an action to set the egress port
     action forward(bit<9> egress_port)
     {
-        if(truc)
+        if(egress_port)
         {
         }
         else
         {
 
-            }
+        }
         standard_metadata.egress_spec = egress_port;
-        sd.ff = dd;
     }
 
     //TODO 3: define a l2 forwarding table and define a match to set the egress port
@@ -135,10 +134,10 @@ control MyDeparser(packet_out packet, in headers hdr) {
 
 //switch architecture
 V1Switch(
-MyParser(),
-MyVerifyChecksum(),
-MyIngress(),
-MyEgress(),
-MyComputeChecksum(),
-MyDeparser()
+    MyParser(),
+    MyVerifyChecksum(),
+    MyIngress(),
+    MyEgress(),
+    MyComputeChecksum(),
+    MyDeparser()
 ) main;

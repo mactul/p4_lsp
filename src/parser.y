@@ -14,7 +14,7 @@
     void yyerror(const char*);
     int yylex(void);
 
-    void add_id_token(const Symbol* s, enum TOKEN_TYPE type);
+    void add_id_token(const Symbol* s, enum TOKEN_TYPE type, uint64_t modifiers);
 
 %}
 
@@ -134,7 +134,7 @@ declaration
     | externDeclaration
     | actionDeclaration
     | parserDeclaration
-    | typeDeclaration {Symbol* s = tos_get_element($1); s->type = TOS_TYPE_IDENTIFIER; add_id_token(s, TOKEN_TYPE);}
+    | typeDeclaration {Symbol* s = tos_get_element($1); s->type = TOS_TYPE_IDENTIFIER; add_id_token(s, TOKEN_TYPE, 0);}
     | controlDeclaration
     | instantiation
     | errorDeclaration
@@ -243,7 +243,7 @@ dotPrefix
 parserDeclaration
     : parserTypeDeclaration optConstructorParameters
       /* no type parameters allowed in the parserTypeDeclaration */
-      '{' parserLocalElements parserStates '}' {tos_decrease_scope_depth();}
+      '{' parserLocalElements parserStates '}' {if($1 != -1) {Symbol* s = tos_get_element($1); add_id_token(s, TOKEN_CALL, 1);} tos_decrease_scope_depth();}
     ;
 
 parserLocalElements
@@ -357,7 +357,7 @@ valueSetDeclaration
 controlDeclaration
     : controlTypeDeclaration optConstructorParameters
       /* no type parameters allowed in controlTypeDeclaration */
-      '{' controlLocalDeclarations APPLY controlBody '}' {tos_decrease_scope_depth();}
+      '{' controlLocalDeclarations APPLY controlBody '}' {if($1 != -1) {Symbol* s = tos_get_element($1); add_id_token(s, TOKEN_CALL, 1);} tos_decrease_scope_depth();}
     ;
 
 controlTypeDeclaration
@@ -385,7 +385,7 @@ controlBody
 /*************************** EXTERN *************************/
 
 externDeclaration
-    : optAnnotations EXTERN nonTypeName {Symbol* s = tos_get_element($3); s->type = TOS_TYPE_IDENTIFIER; add_id_token(s, TOKEN_TYPE);} optTypeParameters '{' methodPrototypes '}'
+    : optAnnotations EXTERN nonTypeName {Symbol* s = tos_get_element($3); s->type = TOS_TYPE_IDENTIFIER; add_id_token(s, TOKEN_TYPE, 0);} optTypeParameters '{' methodPrototypes '}'
     | optAnnotations EXTERN functionPrototype ';' {tos_decrease_scope_depth();}
     ;
 
@@ -419,8 +419,8 @@ namedType
     ;
 
 prefixedType
-    : TYPE_IDENTIFIER {Symbol* s = tos_get_element($1); add_id_token(s, TOKEN_TYPE);}
-    | dotPrefix TYPE_IDENTIFIER {Symbol* s = tos_get_element($2); add_id_token(s, TOKEN_TYPE);}
+    : TYPE_IDENTIFIER {Symbol* s = tos_get_element($1); add_id_token(s, TOKEN_TYPE, 0);}
+    | dotPrefix TYPE_IDENTIFIER {Symbol* s = tos_get_element($2); add_id_token(s, TOKEN_TYPE, 0);}
     ;
 
 typeName
@@ -471,8 +471,8 @@ typeParameters
     ;
 
 typeParameterList
-    : name {Symbol* s = tos_get_element($1); s->type = TOS_TYPE_IDENTIFIER; add_id_token(s, TOKEN_TYPE);}
-    | typeParameterList COMMA name {Symbol* s = tos_get_element($3); s->type = TOS_TYPE_IDENTIFIER; add_id_token(s, TOKEN_TYPE);}
+    : name {Symbol* s = tos_get_element($1); s->type = TOS_TYPE_IDENTIFIER; add_id_token(s, TOKEN_TYPE, 0);}
+    | typeParameterList COMMA name {Symbol* s = tos_get_element($3); s->type = TOS_TYPE_IDENTIFIER; add_id_token(s, TOKEN_TYPE, 0);}
     ;
 
 realTypeArg
@@ -572,8 +572,8 @@ typedefDeclaration
 /*************************** STATEMENTS *************************/
 
 assignmentOrMethodCallStatement
-    : lvalue '(' argumentList ')' ';' {if($1 != -1) {Symbol* s = tos_get_element($1); add_id_token(s, TOKEN_CALL);}}
-    | lvalue '<' typeArgumentList '>' '(' argumentList ')' ';' {if($1 != -1) {Symbol* s = tos_get_element($1); add_id_token(s, TOKEN_CALL);}}
+    : lvalue '(' argumentList ')' ';' {if($1 != -1) {Symbol* s = tos_get_element($1); add_id_token(s, TOKEN_CALL, 0);}}
+    | lvalue '<' typeArgumentList '>' '(' argumentList ')' ';' {if($1 != -1) {Symbol* s = tos_get_element($1); add_id_token(s, TOKEN_CALL, 0);}}
     | lvalue '='  expression ';'
     ;
 
@@ -695,7 +695,7 @@ entry
 /************************* ACTION ********************************/
 
 actionDeclaration
-    : optAnnotations ACTION name '(' parameterList ')' blockStatement
+    : optAnnotations ACTION name '(' parameterList ')' blockStatement {if($3 != -1) {Symbol* s = tos_get_element($3); add_id_token(s, TOKEN_CALL, 1);}}
     ;
 
 /************************* VARIABLES *****************************/
@@ -977,10 +977,10 @@ void yyerror(const char* error)
     fprintf(stderr, "%s", error);
 }
 
-void add_id_token(const Symbol* s, enum TOKEN_TYPE type)
+void add_id_token(const Symbol* s, enum TOKEN_TYPE type, uint64_t modifiers)
 {
     if(s->line > 0)
     {
-        add_token(type, (size_t)s->line, (size_t)s->col, strlen(s->name), 0, false);
+        add_token(type, (size_t)s->line, (size_t)s->col, strlen(s->name), modifiers, false);
     }
 }

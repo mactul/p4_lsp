@@ -74,7 +74,7 @@ int main(int argc, char** argv)
     if(yyparse() != 0)
     {
         fprintf(stderr, "\033[31;1mSyntax Error\033[0;1m: %s:%d\033[0m: %s\n\n", argv[1], get_current_line_count(), get_error_message());
-        goto FREE;
+        goto PRINT_TOKENS;
     }
 
     int reason;
@@ -90,10 +90,10 @@ int main(int argc, char** argv)
         goto FREE;
     }
 
-    // tos_print();
-    print_tokens();
-
     return_code = 0;
+
+PRINT_TOKENS:
+    print_tokens();
 FREE:
     tos_free();
     if(yyin != NULL)

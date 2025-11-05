@@ -91,8 +91,8 @@ valueset {col += 8; return VALUESET;}
 varbit {col += 6; return VARBIT;}
 void {col += 4; return VOID;}
 
-(0x|0b)?[0-9]+ {return INTEGER; col += strlen(yytext);}
-{STRING_LITERAL} {return STRING_LITERAL; col += strlen(yytext);}
+(0x|0b)?[0-9]+ {col += strlen(yytext); return INTEGER;}
+{STRING_LITERAL} {col += strlen(yytext); return STRING_LITERAL;}
 {IDENTIFIER} {
     if(is_main_filepath())
     {

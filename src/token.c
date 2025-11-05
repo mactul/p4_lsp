@@ -75,7 +75,12 @@ bool add_token(enum TOKEN_TYPE type, size_t line, size_t col_start, size_t len, 
 
 int cmp_lines(const void* e1, const void* e2)
 {
-    return (int)(((struct token*)e1)->line - ((struct token*)e2)->line);
+    int x = (int)(((struct token*)e1)->line - ((struct token*)e2)->line);
+    if(x != 0)
+    {
+        return x;
+    }
+    return (int)(((struct token*)e1)->col_start - ((struct token*)e2)->col_start);
 }
 
 void print_tokens()
@@ -94,6 +99,7 @@ void print_tokens()
         }
 
         printf("%lu %lu %lu %d %lu ", delta_line, delta_col, token_list.elements[i].len, token_list.elements[i].type, token_list.elements[i].modifiers);
+        //printf("\n%lu %lu\n", token_list.elements[i].line, token_list.elements[i].col_start);
 
         last_line = token_list.elements[i].line - 1;
         last_col = token_list.elements[i].col_start;
