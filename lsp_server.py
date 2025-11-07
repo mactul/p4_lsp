@@ -74,7 +74,7 @@ while True:
             continue
 
         try:
-            pipe = subprocess.Popen(["/home/mactul/Documents/c-cpp/p4_lsp/build/Linux/x64/release/bin/p4_lsp", uri[len("file://"):]], encoding='ascii', stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=sys.stderr, text=True)
+            pipe = subprocess.Popen(["/home/mactul/Documents/c-cpp/p4_lsp/build/Linux/x64/release/bin/p4_lsp", uri[len("file://"):]], encoding='ascii', stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=sys.stderr, text=True, cwd="/home/mactul/Documents/c-cpp/p4_lsp/")
             answer = pipe.communicate(input=text)[0].strip()
             if len(answer) > 0:
                 tokens = [int(x) for x in answer.split(' ')]

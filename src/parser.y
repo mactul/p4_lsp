@@ -103,6 +103,7 @@
 %type <integer> member
 %type <integer> lvalue
 %type <integer> prefixedNonTypeName
+%type <integer> expression
 
 %left COMMA
 %nonassoc '?'
@@ -877,51 +878,51 @@ lvalue
 // Additional precedences need to be specified
 
 expression
-    : INTEGER
-    | TRUE
-    | FALSE
-    | THIS
-    | STRING_LITERAL
-    | nonTypeName
-    | dotPrefix nonTypeName
-    | expression '[' expression ']'
-    | expression '[' expression ':' expression ']'
-    | '{' expressionList '}'
-    | '{' kvList '}'
-    | '(' expression ')'
-    | '!' expression %prec PREFIX
-    | '~' expression %prec PREFIX
-    | '-' expression %prec PREFIX
-    | '+' expression %prec PREFIX
-    | typeName '.' member
-    | ERROR '.' member
-    | expression '.' member
-    | expression '*' expression
-    | expression '/' expression
-    | expression '%' expression
-    | expression '+' expression
-    | expression '-' expression
-    | expression PIPE_PLUS_PIPE expression
-    | expression PIPE_LESS_PIPE expression
-    | expression LEFT_SHIFT expression
-    | expression RIGHT_SHIFT expression
-    | expression LESS_EQUAL expression
-    | expression MORE_EQUAL expression
-    | expression '<' expression
-    | expression '>' expression
-    | expression DIFFERENT expression
-    | expression EQUAL expression
-    | expression '&' expression
-    | expression '^' expression
-    | expression '|' expression
-    | expression INCREMENT expression
-    | expression AND expression
-    | expression OR expression
-    | expression '?' expression ':' expression
-    | expression '<' realTypeArgumentList '>' '(' argumentList ')'
-    | expression '(' argumentList ')'
-    | namedType '(' argumentList ')'
-    | '(' typeRef ')' expression
+    : INTEGER {$$ = -1;}
+    | TRUE {$$ = -1;}
+    | FALSE {$$ = -1;}
+    | THIS {$$ = -1;}
+    | STRING_LITERAL {$$ = -1;}
+    | nonTypeName {$$ = $1;}
+    | dotPrefix nonTypeName {$$ = $2;}
+    | expression '[' expression ']' {$$ = -1;}
+    | expression '[' expression ':' expression ']' {$$ = -1;}
+    | '{' expressionList '}' {$$ = -1;}
+    | '{' kvList '}' {$$ = -1;}
+    | '(' expression ')' {$$ = -1;}
+    | '!' expression %prec PREFIX {$$ = -1;}
+    | '~' expression %prec PREFIX {$$ = -1;}
+    | '-' expression %prec PREFIX {$$ = -1;}
+    | '+' expression %prec PREFIX {$$ = -1;}
+    | typeName '.' member {$$ = $3;}
+    | ERROR '.' member {$$ = $3;}
+    | expression '.' member {$$ = $3;}
+    | expression '*' expression {$$ = -1;}
+    | expression '/' expression {$$ = -1;}
+    | expression '%' expression {$$ = -1;}
+    | expression '+' expression {$$ = -1;}
+    | expression '-' expression {$$ = -1;}
+    | expression PIPE_PLUS_PIPE expression {$$ = -1;}
+    | expression PIPE_LESS_PIPE expression {$$ = -1;}
+    | expression LEFT_SHIFT expression {$$ = -1;}
+    | expression RIGHT_SHIFT expression {$$ = -1;}
+    | expression LESS_EQUAL expression {$$ = -1;}
+    | expression MORE_EQUAL expression {$$ = -1;}
+    | expression '<' expression {$$ = -1;}
+    | expression '>' expression {$$ = -1;}
+    | expression DIFFERENT expression {$$ = -1;}
+    | expression EQUAL expression {$$ = -1;}
+    | expression '&' expression {$$ = -1;}
+    | expression '^' expression {$$ = -1;}
+    | expression '|' expression {$$ = -1;}
+    | expression INCREMENT expression {$$ = -1;}
+    | expression AND expression {$$ = -1;}
+    | expression OR expression {$$ = -1;}
+    | expression '?' expression ':' expression {$$ = -1;}
+    | expression '<' realTypeArgumentList '>' '(' argumentList ')' {$$ = $1;}
+    | expression '(' argumentList ')' {if($1 != -1) {Symbol* s = tos_get_element($1); add_id_token(s, TOKEN_CALL, 0);}}
+    | namedType '(' argumentList ')' {$$ = -1;}
+    | '(' typeRef ')' expression {$$ = -1;}
     ;
 
 nonBraceExpression
