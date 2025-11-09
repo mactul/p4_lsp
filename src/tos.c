@@ -41,6 +41,10 @@ int tos_register_identifier(enum TOS_TYPES type, const char* name, ssize_t line,
                 symbols_list.elements[v].type = type;
                 symbols_list.elements[v].scope_depth = current_scope_depth;
                 symbols_list.elements[v].p4_type.category = P4_TYPE_CATEGORY_UNKNOWN;
+                symbols_list.elements[v].nb_members = 0;
+                symbols_list.elements[v].nb_members_allocated = 0;
+                free(symbols_list.elements[v].members_ids);
+                symbols_list.elements[v].members_ids = NULL;
             }
             symbols_list.elements[v].line = line;
             symbols_list.elements[v].col = col;
@@ -86,10 +90,41 @@ int tos_register_identifier(enum TOS_TYPES type, const char* name, ssize_t line,
     symbols_list.elements[symbols_list.size].line = line;
     symbols_list.elements[symbols_list.size].col = col;
     symbols_list.elements[symbols_list.size].p4_type.category = P4_TYPE_CATEGORY_UNKNOWN;
+    symbols_list.elements[symbols_list.size].nb_members = 0;
+    symbols_list.elements[symbols_list.size].nb_members_allocated = 0;
+    symbols_list.elements[symbols_list.size].members_ids = NULL;
 
     // printf("%s registered in scope %d\n", name_allocated, current_scope_depth);
 
     return (int)symbols_list.size++;
+}
+
+bool tos_add_member(int type_id, int member_id)
+{
+    if(symbols_list.elements[type_id].nb_members >= symbols_list.elements[type_id].nb_members_allocated)
+    {
+        if(symbols_list.elements[type_id].nb_members_allocated == 0)
+        {
+            symbols_list.elements[type_id].nb_members_allocated = 32;
+        }
+        else
+        {
+            symbols_list.elements[type_id].nb_members_allocated *= 2;
+        }
+        void* temp = realloc(symbols_list.elements[type_id].members_ids, symbols_list.elements[type_id].nb_members_allocated * sizeof(int));
+        if(temp == NULL)
+        {
+            return false;
+        }
+        symbols_list.elements[type_id].members_ids = temp;
+    }
+
+    symbols_list.elements[type_id].members_ids[symbols_list.elements[type_id].nb_members] = member_id;
+
+
+    symbols_list.elements[type_id].nb_members++;
+
+    return true;
 }
 
 static const char* display_type(enum TOS_TYPES type)
@@ -127,6 +162,7 @@ void tos_free()
     for(unsigned int i = 0; i < symbols_list.size; i++)
     {
         free(symbols_list.elements[i].name);
+        free(symbols_list.elements[i].members_ids);
     }
     free(symbols_list.elements);
     symbols_list.elements = NULL;

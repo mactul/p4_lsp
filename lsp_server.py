@@ -1,10 +1,11 @@
 
 #!/usr/bin/env python3
+import os
 import sys
 import json
-import re
 import subprocess
 
+os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
 # --- LSP helpers --------------------------------------------------
 
@@ -74,12 +75,12 @@ while True:
             continue
 
         try:
-            pipe = subprocess.Popen(["/home/mactul/Documents/c-cpp/p4_lsp/build/Linux/x64/release/bin/p4_lsp"], encoding='ascii', stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=sys.stderr, text=True, cwd="/home/mactul/Documents/c-cpp/p4_lsp/")
+            pipe = subprocess.Popen(["./build/Linux/x64/release/bin/p4_lsp"], encoding='ascii', stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=sys.stderr, text=True, cwd="./")
             answer = pipe.communicate(input=text)[0].strip()
             if len(answer) > 0:
                 tokens = [int(x) for x in answer.split(' ')]
         except Exception as e:
-            with open("/home/mactul/Documents/c-cpp/p4_lsp/log", "a") as file:
+            with open("./log", "a") as file:
                 file.write(str(e))
         send({"jsonrpc": "2.0", "id": id_, "result": {"data": tokens}})
 
@@ -95,10 +96,10 @@ while True:
         col = msg["params"]["position"]["character"] + 1
 
         try:
-            pipe = subprocess.Popen(["/home/mactul/Documents/c-cpp/p4_lsp/build/Linux/x64/release/bin/p4_lsp", "hover", str(line), str(col)], encoding='ascii', stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=sys.stderr, text=True, cwd="/home/mactul/Documents/c-cpp/p4_lsp/")
+            pipe = subprocess.Popen(["./build/Linux/x64/release/bin/p4_lsp", "hover", str(line), str(col)], encoding='ascii', stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=sys.stderr, text=True, cwd="./")
             answer = pipe.communicate(input=text)[0]
         except Exception as e:
-            with open("/home/mactul/Documents/c-cpp/p4_lsp/log", "a") as file:
+            with open("./log", "a") as file:
                 file.write(str(e))
 
         send({"jsonrpc": "2.0", "id": id_, "result": {"contents": answer}})

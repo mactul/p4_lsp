@@ -1,3 +1,4 @@
+import os
 import powermake
 
 def on_build(config: powermake.Config):
@@ -6,6 +7,8 @@ def on_build(config: powermake.Config):
     config.add_shared_libs("fl")
 
     files = powermake.filter_files(powermake.get_files("src/*.c", "lib/*.c"), "**/*.lex.c", "**/*.tab.c")
+
+    config.nb_total_operations = len(files) + 7
 
     powermake.run_command_if_needed(
         config=config,
@@ -52,4 +55,23 @@ def on_clean(config: powermake.Config):
 
     powermake.default_on_clean(config)
 
-powermake.run("p4_lsp", build_callback=on_build, clean_callback=on_clean)
+
+def copy_file(old_path: str, new_path: str):
+    with open(old_path, "r") as file:
+        content = file.read().replace("$P4_LSP_FOLDER", os.path.dirname(os.path.realpath(__file__)))
+
+    with open(new_path, "w") as file:
+        file.write(content)
+
+
+def on_install(config: powermake.Config, location: str | None):
+    powermake.makedirs(os.path.expanduser("~/.config/nvim/queries/p4/"))
+    powermake.makedirs(os.path.expanduser("~/.config/nvim/lua/plugins/"))
+    powermake.print_info("Copying ~/.config/nvim/queries/p4/highlights.scm", config.verbosity)
+    copy_file("./nvim_config/queries/p4/highlights.scm", os.path.expanduser("~/.config/nvim/queries/p4/highlights.scm"))
+    powermake.print_info("Copying ~/.config/nvim/lua/plugins/p4-lsp.lua", config.verbosity)
+    copy_file("./nvim_config/lua/plugins/p4-lsp.lua", os.path.expanduser("~/.config/nvim/lua/plugins/p4-lsp.lua"))
+    powermake.print_info("Copying ~/.config/nvim/lua/plugins/p4-treesitter.lua", config.verbosity)
+    copy_file("./nvim_config/lua/plugins/p4-treesitter.lua", os.path.expanduser("~/.config/nvim/lua/plugins/p4-treesitter.lua"))
+
+powermake.run("p4_lsp", build_callback=on_build, clean_callback=on_clean, install_callback=on_install)

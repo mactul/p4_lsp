@@ -38,6 +38,9 @@ typedef struct {
     ssize_t line;
     ssize_t col;
     struct p4_type p4_type;
+    size_t nb_members;
+    size_t nb_members_allocated;
+    int* members_ids;
 } Symbol;
 
 bool tos_init();
@@ -46,6 +49,8 @@ void tos_print();
 void tos_free();
 int tos_get_size();
 Symbol* tos_get_element(int n);
+
+bool tos_add_member(int type_id, int member_id);
 
 void tos_increase_scope_depth(void);
 void tos_decrease_scope_depth(void);

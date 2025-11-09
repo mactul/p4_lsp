@@ -17,6 +17,9 @@
 
     void add_id_token(const Symbol* s, enum TOKEN_TYPE type, uint64_t modifiers);
 
+
+    static int _struct_tos_id = -1;
+
 %}
 
 %union {
@@ -523,15 +526,15 @@ derivedTypeDeclaration
     ;
 
 headerTypeDeclaration
-    : optAnnotations HEADER name optTypeParameters '{' structFieldList '}' {$$ = $3;}
+    : optAnnotations HEADER name {_struct_tos_id = $3.tos_id;} optTypeParameters '{' structFieldList '}' {$$ = $3;}
     ;
 
 headerUnionDeclaration
-    : optAnnotations HEADER_UNION name optTypeParameters '{' structFieldList '}' {$$ = $3;}
+    : optAnnotations HEADER_UNION name {_struct_tos_id = $3.tos_id;} optTypeParameters '{' structFieldList '}' {$$ = $3;}
     ;
 
 structTypeDeclaration
-    : optAnnotations STRUCT name optTypeParameters '{' structFieldList '}' {$$ = $3;}
+    : optAnnotations STRUCT name {_struct_tos_id = $3.tos_id;} optTypeParameters '{' structFieldList '}' {$$ = $3;}
     ;
 
 structFieldList
@@ -540,7 +543,7 @@ structFieldList
     ;
 
 structField
-    : optAnnotations typeRef name ';'
+    : optAnnotations typeRef name ';' {if(_struct_tos_id != -1 && $3.tos_id != -1) {tos_add_member(_struct_tos_id, $3.tos_id);}}
     ;
 
 enumDeclaration

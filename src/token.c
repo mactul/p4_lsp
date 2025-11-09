@@ -28,6 +28,11 @@ void enter_file(const char* filepath)
     if(_main_filepath == NULL)
     {
         _main_filepath = malloc(strlen(filepath)+1);
+        if(_main_filepath == NULL)
+        {
+            perror("malloc");
+            exit(1);
+        }
         strcpy(_main_filepath, filepath);
     }
     _is_main_filepath = (strcmp(filepath, _main_filepath) == 0);
