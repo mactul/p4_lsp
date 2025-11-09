@@ -74,7 +74,7 @@ while True:
             continue
 
         try:
-            pipe = subprocess.Popen(["/home/mactul/Documents/c-cpp/p4_lsp/build/Linux/x64/release/bin/p4_lsp", uri[len("file://"):]], encoding='ascii', stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=sys.stderr, text=True, cwd="/home/mactul/Documents/c-cpp/p4_lsp/")
+            pipe = subprocess.Popen(["/home/mactul/Documents/c-cpp/p4_lsp/build/Linux/x64/release/bin/p4_lsp"], encoding='ascii', stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=sys.stderr, text=True, cwd="/home/mactul/Documents/c-cpp/p4_lsp/")
             answer = pipe.communicate(input=text)[0].strip()
             if len(answer) > 0:
                 tokens = [int(x) for x in answer.split(' ')]
@@ -86,12 +86,22 @@ while True:
     elif method == "textDocument/hover":
         uri = msg["params"]["textDocument"]["uri"]
         text = docs.get(uri, "")
-        tokens = []
+        answer = ""
 
         if not uri.endswith("p4"):
             continue
 
-        send({"jsonrpc": "2.0", "id": id_, "result": {"contents": str(msg["params"])}})
+        line = msg["params"]["position"]["line"] + 1
+        col = msg["params"]["position"]["character"] + 1
+
+        try:
+            pipe = subprocess.Popen(["/home/mactul/Documents/c-cpp/p4_lsp/build/Linux/x64/release/bin/p4_lsp", "hover", str(line), str(col)], encoding='ascii', stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=sys.stderr, text=True, cwd="/home/mactul/Documents/c-cpp/p4_lsp/")
+            answer = pipe.communicate(input=text)[0]
+        except Exception as e:
+            with open("/home/mactul/Documents/c-cpp/p4_lsp/log", "a") as file:
+                file.write(str(e))
+
+        send({"jsonrpc": "2.0", "id": id_, "result": {"contents": answer}})
 
     # just acknowledge shutdown/exit
     elif method == "shutdown":

@@ -57,8 +57,13 @@ control MyIngress(inout headers hdr,
                   inout metadata meta,
                   inout standard_metadata_t standard_metadata) {
 
+    headers truc;
+
+    metadata chose;
+
     action drop() {
 
+        truc = 8;
         mark_to_drop(standard_metadata);
     }
 

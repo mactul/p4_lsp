@@ -19,12 +19,25 @@ enum COMPARISON_OPERATORS {
     COMP_OP_SUP
 };
 
+enum P4_TYPE_CATEGORY {
+    P4_TYPE_CATEGORY_SYMBOL_REF,
+    P4_TYPE_CATEGORY_UNKNOWN
+};
+
+struct p4_type {
+    union {
+        int symbol_id;
+    } type;
+    enum P4_TYPE_CATEGORY category;
+};
+
 typedef struct {
     char* name;
     enum TOS_TYPES type;
     int scope_depth;
     ssize_t line;
     ssize_t col;
+    struct p4_type p4_type;
 } Symbol;
 
 bool tos_init();

@@ -1,9 +1,11 @@
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/wait.h>
 #include "tos.h"
 #include "token.h"
+#include "hover.h"
 
 extern int yydebug;
 extern int yylex(void);
@@ -11,13 +13,23 @@ extern int yyparse(void);
 extern int yylex_destroy(void);
 extern FILE* yyin;
 
+extern ssize_t _line_requested;
+extern ssize_t _col_requested;
 
+ssize_t _line_requested = -1;
+ssize_t _col_requested = -1;
 
 int main(int argc, char** argv)
 {
     int return_code = 1;
 
     yyin = NULL;
+
+    if(argc == 4 && strcmp(argv[1], "hover") == 0)
+    {
+        _line_requested = atoi(argv[2]);
+        _col_requested = atoi(argv[3]);
+    }
 
 
     int out_fds[2];
@@ -73,7 +85,7 @@ int main(int argc, char** argv)
 
     if(yyparse() != 0)
     {
-        fprintf(stderr, "\033[31;1mSyntax Error\033[0;1m: %s:%d\033[0m: %s\n\n", argv[1], get_current_line_count(), get_error_message());
+        fprintf(stderr, "\033[31;1mSyntax Error\033\n\n");
         goto PRINT_TOKENS;
     }
 
@@ -93,7 +105,13 @@ int main(int argc, char** argv)
     return_code = 0;
 
 PRINT_TOKENS:
-    print_tokens();
+    if(argc == 4 && strcmp(argv[1], "hover") == 0)
+    {
+        printf("%s\n", get_hover_string());
+    }
+    else {
+        print_tokens();
+    }
 FREE:
     tos_free();
     if(yyin != NULL)

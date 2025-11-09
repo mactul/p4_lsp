@@ -40,6 +40,7 @@ int tos_register_identifier(enum TOS_TYPES type, const char* name, ssize_t line,
             {
                 symbols_list.elements[v].type = type;
                 symbols_list.elements[v].scope_depth = current_scope_depth;
+                symbols_list.elements[v].p4_type.category = P4_TYPE_CATEGORY_UNKNOWN;
             }
             symbols_list.elements[v].line = line;
             symbols_list.elements[v].col = col;
@@ -84,6 +85,7 @@ int tos_register_identifier(enum TOS_TYPES type, const char* name, ssize_t line,
     symbols_list.elements[symbols_list.size].scope_depth = current_scope_depth;
     symbols_list.elements[symbols_list.size].line = line;
     symbols_list.elements[symbols_list.size].col = col;
+    symbols_list.elements[symbols_list.size].p4_type.category = P4_TYPE_CATEGORY_UNKNOWN;
 
     // printf("%s registered in scope %d\n", name_allocated, current_scope_depth);
 

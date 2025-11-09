@@ -5,12 +5,18 @@
     #include "tos.h"
     #include "parser.tab.h"
     #include "token.h"
+    #include "hover.h"
+
+    extern ssize_t _line_requested;
+    extern ssize_t _col_requested;
 
     #ifdef FLEX_PRINT_DEBUG
         #define PRINT_DEBUG(str) puts(str)
     #else
         #define PRINT_DEBUG(str)
     #endif
+
+    #define INFOS_ASKED(line, col, len) (is_main_filepath() && (ssize_t)(line) == _line_requested && (ssize_t)(col) <= _col_requested && (ssize_t)((col) + (len)) >= _col_requested)
 
     static size_t line = 0;
     static size_t col = 0;
@@ -34,7 +40,7 @@ abstract {col += 8; return ABSTRACT;}
 action {col += 6; return ACTION;}
 actions {col += 7; return ACTIONS;}
 && {col += 2; return AND;}
-apply {yylval.integer = tos_register_identifier(TOS_IDENTIFIER, "apply", (ssize_t)line, (ssize_t)col); col += 5; return APPLY;}
+apply {yylval.identifier.infos_asked = INFOS_ASKED(line, col, 5); yylval.identifier.tos_id = tos_register_identifier(TOS_IDENTIFIER, "apply", (ssize_t)line, (ssize_t)col); col += 5; return APPLY;}
 bit {col += 3; return BIT;}
 bool {col += 4; return BOOL;}
 , {col += 1; return COMMA;}
@@ -96,13 +102,18 @@ void {col += 4; return VOID;}
 {IDENTIFIER} {
     if(is_main_filepath())
     {
-        yylval.integer = tos_register_identifier(TOS_IDENTIFIER, yytext, (ssize_t)line, (ssize_t)col);
+        yylval.identifier.tos_id = tos_register_identifier(TOS_IDENTIFIER, yytext, (ssize_t)line, (ssize_t)col);
     }
     else
     {
-        yylval.integer = tos_register_identifier(TOS_IDENTIFIER, yytext, -1, -1);
+        yylval.identifier.tos_id = tos_register_identifier(TOS_IDENTIFIER, yytext, -1, -1);
     }
-    Symbol* s = tos_get_element(yylval.integer);
+    yylval.identifier.infos_asked = INFOS_ASKED(line, col, strlen(yytext));
+    if(yylval.identifier.infos_asked)
+    {
+        set_hover(yylval.identifier.tos_id);
+    }
+    Symbol* s = tos_get_element(yylval.identifier.tos_id);
     col += strlen(yytext);
     return s->type == TOS_TYPE_IDENTIFIER ? TYPE_IDENTIFIER : IDENTIFIER;
 }

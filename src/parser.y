@@ -10,6 +10,7 @@
     #include <stdarg.h>
     #include "tos.h"
     #include "token.h"
+    #include "hover.h"
 
     void yyerror(const char*);
     int yylex(void);
@@ -19,14 +20,17 @@
 %}
 
 %union {
-    int integer;
+    struct {
+        int tos_id;
+        bool infos_asked;
+    } identifier;
 }
 
 %token ABSTRACT
 %token ACTION
 %token ACTIONS
 %token AND
-%token <integer> APPLY
+%token <identifier> APPLY
 %token BIT
 %token BOOL
 %token COMMA
@@ -45,7 +49,7 @@
 %token FALSE
 %token HEADER
 %token HEADER_UNION
-%token <integer> IDENTIFIER
+%token <identifier> IDENTIFIER
 %token IF
 %token IN
 %token INCREMENT
@@ -82,28 +86,31 @@
 %token TUPLE
 %token TYPE
 %token TYPEDEF
-%token <integer> TYPE_IDENTIFIER
+%token <identifier> TYPE_IDENTIFIER
 %token UNKNOWN_TOKEN
 %token VALUESET
 %token VARBIT
 %token VOID
 
-%type <integer> typeDeclaration
-%type <integer> name
-%type <integer> nonTypeName
-%type <integer> packageTypeDeclaration
-%type <integer> parserTypeDeclaration
-%type <integer> controlTypeDeclaration
-%type <integer> derivedTypeDeclaration
-%type <integer> typedefDeclaration
-%type <integer> headerTypeDeclaration
-%type <integer> headerUnionDeclaration
-%type <integer> structTypeDeclaration
-%type <integer> enumDeclaration
-%type <integer> member
-%type <integer> lvalue
-%type <integer> prefixedNonTypeName
-%type <integer> expression
+%type <identifier> typeDeclaration
+%type <identifier> name
+%type <identifier> nonTypeName
+%type <identifier> packageTypeDeclaration
+%type <identifier> parserTypeDeclaration
+%type <identifier> controlTypeDeclaration
+%type <identifier> derivedTypeDeclaration
+%type <identifier> typedefDeclaration
+%type <identifier> headerTypeDeclaration
+%type <identifier> headerUnionDeclaration
+%type <identifier> structTypeDeclaration
+%type <identifier> enumDeclaration
+%type <identifier> member
+%type <identifier> lvalue
+%type <identifier> prefixedNonTypeName
+%type <identifier> expression
+%type <identifier> typeRef
+%type <identifier> prefixedType
+%type <identifier> typeName
 
 %left COMMA
 %nonassoc '?'
@@ -135,7 +142,7 @@ declaration
     | externDeclaration
     | actionDeclaration
     | parserDeclaration
-    | typeDeclaration {Symbol* s = tos_get_element($1); s->type = TOS_TYPE_IDENTIFIER; add_id_token(s, TOKEN_TYPE, 0);}
+    | typeDeclaration {Symbol* s = tos_get_element($1.tos_id); s->type = TOS_TYPE_IDENTIFIER; add_id_token(s, TOKEN_TYPE, 0);}
     | controlDeclaration
     | instantiation
     | errorDeclaration
@@ -146,11 +153,11 @@ declaration
 nonTypeName
     : IDENTIFIER {$$ = $1;}
     | APPLY {$$ = $1;}
-    | KEY {$$ = -1;}
-    | ACTIONS {$$ = -1;}
-    | STATE {$$ = -1;}
-    | ENTRIES {$$ = -1;}
-    | TYPE {$$ = -1;}
+    | KEY {$$.tos_id = -1;}
+    | ACTIONS {$$.tos_id = -1;}
+    | STATE {$$.tos_id = -1;}
+    | ENTRIES {$$.tos_id = -1;}
+    | TYPE {$$.tos_id = -1;}
     ;
 
 name
@@ -193,8 +200,8 @@ nonEmptyParameterList
     ;
 
 parameter
-    : optAnnotations direction typeRef name
-    | optAnnotations direction typeRef name '=' expression
+    : optAnnotations direction typeRef name {if($3.tos_id != -1 && $4.tos_id != -1) {Symbol* s = tos_get_element($4.tos_id); s->p4_type.category = P4_TYPE_CATEGORY_SYMBOL_REF; s->p4_type.type.symbol_id = $3.tos_id; if($4.infos_asked) {set_hover($4.tos_id);}}}
+    | optAnnotations direction typeRef name '=' expression {if($3.tos_id != -1 && $4.tos_id != -1) {Symbol* s = tos_get_element($4.tos_id); s->p4_type.category = P4_TYPE_CATEGORY_SYMBOL_REF; s->p4_type.type.symbol_id = $3.tos_id; if($4.infos_asked) {set_hover($4.tos_id);}}}
     ;
 
 direction
@@ -244,7 +251,7 @@ dotPrefix
 parserDeclaration
     : parserTypeDeclaration optConstructorParameters
       /* no type parameters allowed in the parserTypeDeclaration */
-      '{' parserLocalElements parserStates '}' {if($1 != -1) {Symbol* s = tos_get_element($1); add_id_token(s, TOKEN_CALL, 1);} tos_decrease_scope_depth();}
+      '{' parserLocalElements parserStates '}' {if($1.tos_id != -1) {Symbol* s = tos_get_element($1.tos_id); add_id_token(s, TOKEN_CALL, 1);} tos_decrease_scope_depth();}
     ;
 
 parserLocalElements
@@ -358,7 +365,7 @@ valueSetDeclaration
 controlDeclaration
     : controlTypeDeclaration optConstructorParameters
       /* no type parameters allowed in controlTypeDeclaration */
-      '{' controlLocalDeclarations APPLY controlBody '}' {if($1 != -1) {Symbol* s = tos_get_element($1); add_id_token(s, TOKEN_CALL, 1);} tos_decrease_scope_depth();}
+      '{' controlLocalDeclarations APPLY controlBody '}' {if($1.tos_id != -1) {Symbol* s = tos_get_element($1.tos_id); add_id_token(s, TOKEN_CALL, 1);} tos_decrease_scope_depth();}
     ;
 
 controlTypeDeclaration
@@ -386,7 +393,7 @@ controlBody
 /*************************** EXTERN *************************/
 
 externDeclaration
-    : optAnnotations EXTERN nonTypeName {Symbol* s = tos_get_element($3); s->type = TOS_TYPE_IDENTIFIER; add_id_token(s, TOKEN_TYPE, 0);} optTypeParameters '{' methodPrototypes '}'
+    : optAnnotations EXTERN nonTypeName {Symbol* s = tos_get_element($3.tos_id); s->type = TOS_TYPE_IDENTIFIER; add_id_token(s, TOKEN_TYPE, 0);} optTypeParameters '{' methodPrototypes '}'
     | optAnnotations EXTERN functionPrototype ';' {tos_decrease_scope_depth();}
     ;
 
@@ -407,11 +414,11 @@ methodPrototype
 /************************** TYPES ****************************/
 
 typeRef
-    : baseType
-    | typeName
-    | specializedType
-    | headerStackType
-    | tupleType
+    : baseType {$$.tos_id = -1;}
+    | typeName {$$ = $1;}
+    | specializedType {$$.tos_id = -1;}
+    | headerStackType {$$.tos_id = -1;}
+    | tupleType {$$.tos_id = -1;}
     ;
 
 namedType
@@ -420,12 +427,12 @@ namedType
     ;
 
 prefixedType
-    : TYPE_IDENTIFIER {Symbol* s = tos_get_element($1); add_id_token(s, TOKEN_TYPE, 0);}
-    | dotPrefix TYPE_IDENTIFIER {Symbol* s = tos_get_element($2); add_id_token(s, TOKEN_TYPE, 0);}
+    : TYPE_IDENTIFIER {Symbol* s = tos_get_element($1.tos_id); add_id_token(s, TOKEN_TYPE, 0); $$ = $1;}
+    | dotPrefix TYPE_IDENTIFIER {Symbol* s = tos_get_element($2.tos_id); add_id_token(s, TOKEN_TYPE, 0); $$ = $2;}
     ;
 
 typeName
-    : prefixedType
+    : prefixedType {$$ = $1;}
     ;
 
 tupleType
@@ -472,8 +479,8 @@ typeParameters
     ;
 
 typeParameterList
-    : name {Symbol* s = tos_get_element($1); s->type = TOS_TYPE_IDENTIFIER; add_id_token(s, TOKEN_TYPE, 0);}
-    | typeParameterList COMMA name {Symbol* s = tos_get_element($3); s->type = TOS_TYPE_IDENTIFIER; add_id_token(s, TOKEN_TYPE, 0);}
+    : name {Symbol* s = tos_get_element($1.tos_id); s->type = TOS_TYPE_IDENTIFIER; add_id_token(s, TOKEN_TYPE, 0);}
+    | typeParameterList COMMA name {Symbol* s = tos_get_element($3.tos_id); s->type = TOS_TYPE_IDENTIFIER; add_id_token(s, TOKEN_TYPE, 0);}
     ;
 
 realTypeArg
@@ -573,8 +580,8 @@ typedefDeclaration
 /*************************** STATEMENTS *************************/
 
 assignmentOrMethodCallStatement
-    : lvalue '(' argumentList ')' ';' {if($1 != -1) {Symbol* s = tos_get_element($1); add_id_token(s, TOKEN_CALL, 0);}}
-    | lvalue '<' typeArgumentList '>' '(' argumentList ')' ';' {if($1 != -1) {Symbol* s = tos_get_element($1); add_id_token(s, TOKEN_CALL, 0);}}
+    : lvalue '(' argumentList ')' ';' {if($1.tos_id != -1) {Symbol* s = tos_get_element($1.tos_id); add_id_token(s, TOKEN_CALL, 0);}}
+    | lvalue '<' typeArgumentList '>' '(' argumentList ')' ';' {if($1.tos_id != -1) {Symbol* s = tos_get_element($1.tos_id); add_id_token(s, TOKEN_CALL, 0);}}
     | lvalue '='  expression ';'
     ;
 
@@ -696,14 +703,14 @@ entry
 /************************* ACTION ********************************/
 
 actionDeclaration
-    : optAnnotations ACTION name '(' parameterList ')' blockStatement {if($3 != -1) {Symbol* s = tos_get_element($3); add_id_token(s, TOKEN_CALL, 1);}}
+    : optAnnotations ACTION name '(' parameterList ')' blockStatement {if($3.tos_id != -1) {Symbol* s = tos_get_element($3.tos_id); add_id_token(s, TOKEN_CALL, 1);}}
     ;
 
 /************************* VARIABLES *****************************/
 
 variableDeclaration
     : annotations typeRef name optInitializer ';'
-    | typeRef name optInitializer ';'
+    | typeRef name optInitializer ';' {if($1.tos_id != -1 && $2.tos_id != -1) {Symbol* s = tos_get_element($2.tos_id); s->p4_type.category = P4_TYPE_CATEGORY_SYMBOL_REF; s->p4_type.type.symbol_id = $1.tos_id; if($2.infos_asked) {set_hover($2.tos_id);}}}
     ;
 
 constantDeclaration
@@ -867,10 +874,10 @@ prefixedNonTypeName
 
 lvalue
     : prefixedNonTypeName {$$ = $1;}
-    | THIS {$$ = -1;}
+    | THIS {$$.tos_id = -1;}
     | lvalue '.' member {$$ = $3;}
-    | lvalue '[' expression ']' {$$ = -1;}
-    | lvalue '[' expression ':' expression ']' {$$ = -1;}
+    | lvalue '[' expression ']' {$$.tos_id = -1;}
+    | lvalue '[' expression ':' expression ']' {$$.tos_id = -1;}
     ;
 
 
@@ -878,51 +885,51 @@ lvalue
 // Additional precedences need to be specified
 
 expression
-    : INTEGER {$$ = -1;}
-    | TRUE {$$ = -1;}
-    | FALSE {$$ = -1;}
-    | THIS {$$ = -1;}
-    | STRING_LITERAL {$$ = -1;}
+    : INTEGER {$$.tos_id = -1;}
+    | TRUE {$$.tos_id = -1;}
+    | FALSE {$$.tos_id = -1;}
+    | THIS {$$.tos_id = -1;}
+    | STRING_LITERAL {$$.tos_id = -1;}
     | nonTypeName {$$ = $1;}
     | dotPrefix nonTypeName {$$ = $2;}
-    | expression '[' expression ']' {$$ = -1;}
-    | expression '[' expression ':' expression ']' {$$ = -1;}
-    | '{' expressionList '}' {$$ = -1;}
-    | '{' kvList '}' {$$ = -1;}
-    | '(' expression ')' {$$ = -1;}
-    | '!' expression %prec PREFIX {$$ = -1;}
-    | '~' expression %prec PREFIX {$$ = -1;}
-    | '-' expression %prec PREFIX {$$ = -1;}
-    | '+' expression %prec PREFIX {$$ = -1;}
+    | expression '[' expression ']' {$$.tos_id = -1;}
+    | expression '[' expression ':' expression ']' {$$.tos_id = -1;}
+    | '{' expressionList '}' {$$.tos_id = -1;}
+    | '{' kvList '}' {$$.tos_id = -1;}
+    | '(' expression ')' {$$.tos_id = -1;}
+    | '!' expression %prec PREFIX {$$.tos_id = -1;}
+    | '~' expression %prec PREFIX {$$.tos_id = -1;}
+    | '-' expression %prec PREFIX {$$.tos_id = -1;}
+    | '+' expression %prec PREFIX {$$.tos_id = -1;}
     | typeName '.' member {$$ = $3;}
     | ERROR '.' member {$$ = $3;}
     | expression '.' member {$$ = $3;}
-    | expression '*' expression {$$ = -1;}
-    | expression '/' expression {$$ = -1;}
-    | expression '%' expression {$$ = -1;}
-    | expression '+' expression {$$ = -1;}
-    | expression '-' expression {$$ = -1;}
-    | expression PIPE_PLUS_PIPE expression {$$ = -1;}
-    | expression PIPE_LESS_PIPE expression {$$ = -1;}
-    | expression LEFT_SHIFT expression {$$ = -1;}
-    | expression RIGHT_SHIFT expression {$$ = -1;}
-    | expression LESS_EQUAL expression {$$ = -1;}
-    | expression MORE_EQUAL expression {$$ = -1;}
-    | expression '<' expression {$$ = -1;}
-    | expression '>' expression {$$ = -1;}
-    | expression DIFFERENT expression {$$ = -1;}
-    | expression EQUAL expression {$$ = -1;}
-    | expression '&' expression {$$ = -1;}
-    | expression '^' expression {$$ = -1;}
-    | expression '|' expression {$$ = -1;}
-    | expression INCREMENT expression {$$ = -1;}
-    | expression AND expression {$$ = -1;}
-    | expression OR expression {$$ = -1;}
-    | expression '?' expression ':' expression {$$ = -1;}
+    | expression '*' expression {$$.tos_id = -1;}
+    | expression '/' expression {$$.tos_id = -1;}
+    | expression '%' expression {$$.tos_id = -1;}
+    | expression '+' expression {$$.tos_id = -1;}
+    | expression '-' expression {$$.tos_id = -1;}
+    | expression PIPE_PLUS_PIPE expression {$$.tos_id = -1;}
+    | expression PIPE_LESS_PIPE expression {$$.tos_id = -1;}
+    | expression LEFT_SHIFT expression {$$.tos_id = -1;}
+    | expression RIGHT_SHIFT expression {$$.tos_id = -1;}
+    | expression LESS_EQUAL expression {$$.tos_id = -1;}
+    | expression MORE_EQUAL expression {$$.tos_id = -1;}
+    | expression '<' expression {$$.tos_id = -1;}
+    | expression '>' expression {$$.tos_id = -1;}
+    | expression DIFFERENT expression {$$.tos_id = -1;}
+    | expression EQUAL expression {$$.tos_id = -1;}
+    | expression '&' expression {$$.tos_id = -1;}
+    | expression '^' expression {$$.tos_id = -1;}
+    | expression '|' expression {$$.tos_id = -1;}
+    | expression INCREMENT expression {$$.tos_id = -1;}
+    | expression AND expression {$$.tos_id = -1;}
+    | expression OR expression {$$.tos_id = -1;}
+    | expression '?' expression ':' expression {$$.tos_id = -1;}
     | expression '<' realTypeArgumentList '>' '(' argumentList ')' {$$ = $1;}
-    | expression '(' argumentList ')' {if($1 != -1) {Symbol* s = tos_get_element($1); add_id_token(s, TOKEN_CALL, 0);}}
-    | namedType '(' argumentList ')' {$$ = -1;}
-    | '(' typeRef ')' expression {$$ = -1;}
+    | expression '(' argumentList ')' {if($1.tos_id != -1) {Symbol* s = tos_get_element($1.tos_id); add_id_token(s, TOKEN_CALL, 0);}}
+    | namedType '(' argumentList ')' {$$.tos_id = -1;}
+    | '(' typeRef ')' expression {$$.tos_id = -1;}
     ;
 
 nonBraceExpression
